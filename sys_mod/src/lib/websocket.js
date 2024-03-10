@@ -1,20 +1,16 @@
 import { writable } from 'svelte/store'
 
-export const gpuData = writable({
-    temperature: 0,
-    powerConsumption: 0,
-    gpuClockState: 0,
-    vramPercent: 0,
-    gpuPercent: 0,
-})
+export const gpuData = writable([]);
 
 export function connectWebSocket() {
-    const ws = new WebSocket('ws://localhost:8069/ws')
+  const ws = new WebSocket('ws://localhost:8069/ws');
 
-    ws.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        gpuData.set(data)
-    }
+  ws.onmessage = (event) => {
+    const newData = JSON.parse(event.data);
+    gpuData.update(currentData => {
+      return [...currentData, newData];
+    });
+  };
 
     ws.onclose = () => {
         console.log("Websocket connection closed. Attempting to reconnect...")
