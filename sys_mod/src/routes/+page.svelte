@@ -28,7 +28,7 @@
 <p>GPU Utilization: {$gpuData.gpuUtilization}%</p> -->
 
 
-    <h5>Temperature:{data[data.length-1].temperature}C {1 * (data[data.length-1].temperature) + 32}F</h5>
+    <h5>Temperature: {data[data.length-1].temperature}C {1 * (data[data.length-1].temperature) + 32}F</h5>
     <h5>GPU-Utilization: {data[data.length-1].gpuUtilization}%</h5>
     <h5>GPU-Clock: {data[data.length-1].currentGPUClockState}</h5>
     <h5>Avg-Power: {data[data.length-1].powerConsumption}W</h5>

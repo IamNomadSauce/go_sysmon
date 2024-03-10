@@ -9,6 +9,7 @@ export function connectWebSocket() {
     const newData = JSON.parse(event.data);
     newData.time = Date.now()
     gpuData.update(currentData => {
+        console.log("GPU DATA", newData)
       return [...currentData, newData];
     });
   };

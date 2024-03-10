@@ -25,58 +25,92 @@
         .domain(extent(sliced_data, (d) => d.time))
         .range([paddingLeft, chartWidth - paddingRight]);
     
-    $: yScale = scaleLinear()
+    // Define the yScale for power consumption as before
+    $: yScalePower = scaleLinear()
         .domain([
             min(sliced_data, (d) => d.powerConsumption),
             max(sliced_data, (d) => d.powerConsumption),
         ])
-        .range([chartHeight - paddingBottom, paddingTop]); // Inverted range for y-axis
+        .range([chartHeight - paddingBottom, paddingTop]);
 
-    // Define the line generator function
-    $: lineGenerator = d3.line()
+    // Define a new yScale for temperature
+    $: yScaleTemp = scaleLinear()
+        .domain([
+            min(sliced_data, (d) => d.temperature),
+            max(sliced_data, (d) => d.temperature),
+        ])
+        .range([chartHeight - paddingBottom, paddingTop]);
+
+    // Define the line generator function for power consumption
+    $: lineGeneratorPower = d3.line()
         .x(d => xScale(d.time))
-        .y(d => yScale(d.powerConsumption))
-        .curve(d3.curveMonotoneX); // This makes the line smooth
-    let xAxis, yAxis;
+        .y(d => yScalePower(d.powerConsumption))
+        .curve(d3.curveMonotoneX);
 
-    $: if (xAxis && yAxis) {
-        select(xAxis).call(axisBottom(xScale))
-            .call(g => g.select(".domain").remove()); // Remove the x-axis line
-        select(yAxis)
-            .attr("transform", `translate(${paddingLeft}, 0)`)
-            .call(axisRight(yScale))
-            .call(g => g.select(".domain").remove()); // Remove the y-axis line
+    // Define the line generator function for temperature
+    $: lineGeneratorTemp = d3.line()
+        .x(d => xScale(d.time))
+        .y(d => yScaleTemp(d.temperature))
+        .curve(d3.curveMonotoneX);
+
+    let xAxisPower, yAxisPower, xAxisTemp, yAxisTemp;
+
+    $: if (xAxisPower && yAxisPower) {
+        select(xAxisPower).call(axisBottom(xScale))
+            .call(g => g.select(".domain").remove());
+        select(yAxisPower)
+            .attr("transform", `translate(${chartWidth - paddingRight}, 0)`) // Move y-axis to the right
+            .call(axisRight(yScalePower)) // Use axisRight to place the ticks and labels on the right
+            .call(g => g.select(".domain").remove());
+    }
+
+    $: if (xAxisTemp && yAxisTemp) {
+        select(xAxisTemp).call(axisBottom(xScale))
+            .call(g => g.select(".domain").remove());
+        select(yAxisTemp)
+            .attr("transform", `translate(${chartWidth - paddingRight}, 0)`)
+            .call(axisRight(yScaleTemp))
+            .call(g => g.select(".domain").remove());
     }
 
 
-    $: console.log("YSCALE", yScale(sliced_data[sliced_data.length-1].powerConsumption))
+    // $: console.log("YSCALE", yScale(sliced_data[sliced_data.length-1].powerConsumption))
 </script>
 
+<!-- Power Consumption Line Chart -->
+<h5>Power</h5>
 <svg class="historgram" width={chartWidth} height={chartHeight}>
     <g
-        bind:this={xAxis}
+        bind:this={xAxisPower}
         transform={`translate(0, ${chartHeight - paddingBottom})`}
         class="x-Axis"
     ></g>
-    <g bind:this={yAxis} class="y-Axis"></g>
+    <g bind:this={yAxisPower} class="y-Axis"></g>
 
-    <!-- Draw the line for the line chart -->
+    <!-- Draw the line for power consumption -->
     <path
-        d={lineGenerator(sliced_data)}
+        d={lineGeneratorPower(sliced_data)}
         fill="none"
         stroke="orange"
         stroke-width="1"
     />
+</svg>
 
-    <!-- Optionally, if you want to keep the circles on the line chart -->
-    <g>
-        {#each sliced_data as val, i}
-            <circle
-                cx={xScale(val.time)}
-                cy={yScale(val.powerConsumption)}
-                r="1"
-                fill="gold"
-            />
-        {/each}
-    </g>
+<!-- Temperature Line Chart -->
+<h5>Temperature</h5>
+<svg class="historgram" width={chartWidth} height={chartHeight} style="margin-top: 20px;">
+    <g
+        bind:this={xAxisTemp}
+        transform={`translate(0, ${chartHeight - paddingBottom})`}
+        class="x-Axis"
+    ></g>
+    <g bind:this={yAxisTemp} class="y-Axis"></g>
+
+    <!-- Draw the line for temperature -->
+    <path
+        d={lineGeneratorTemp(sliced_data)}
+        fill="none"
+        stroke="cyan"
+        stroke-width="1"
+    />
 </svg>
