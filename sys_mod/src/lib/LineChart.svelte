@@ -1,61 +1,82 @@
 <script>
-    import { onMount, afterUpdate } from 'svelte';
-    import * as d3 from 'd3';
-  
+    import { onMount, afterUpdate } from "svelte";
+    import * as d3 from "d3";
+    import { scaleTime, scaleLinear } from "d3-scale";
+    import { extent, min, max } from "d3-array";
+    import { axisBottom, axisRight } from "d3-axis";
+    import { select } from "d3-selection";
+
     export let data = [];
     export let width = 600;
     export let height = 300;
-  
-    let svg;
 
-    $: console.log("data", data)
-  
-    // Function to draw the chart
+    let slice_window = 1440;
+    let chartWidth = 1500;
+    let chartHeight = 300;
+    let paddingLeft = 50;
+    let paddingRight = 25;
+    let paddingTop = 50;
+    let paddingBottom = 25;
+    $: sliced_data = data.slice(-slice_window);
+
+    $: console.log("data", data);
+
+    $: xScale = scaleTime()
+        .domain(extent(sliced_data, (d) => d.time))
+        .range([paddingLeft, chartWidth - paddingRight]);
     
-    // function drawChart() {
-    //   if (!svg || data.length === 0) return; // Ensure SVG is bound
-  
-    //   d3.select(svg).selectAll("*").remove(); // Clear previous chart
-  
-    //   const margin = { top: 20, right: 20, bottom: 30, left: 50 },
-    //     chartWidth = width - margin.left - margin.right,
-    //     chartHeight = height - margin.top - margin.bottom;
-  
-    //   const x = d3.scaleLinear().domain(d3.extent(data, d => d.time)).range([0, chartWidth]);
-    //   const y = d3.scaleLinear().domain([0, d3.max(data, d => d.value)]).range([chartHeight, 0]);
-  
-    //   const line = d3.line()
-    //     .x(d => x(d.time))
-    //     .y(d => y(d.value));
-  
-    //   const g = d3.select(svg)
-    //     .append('g')
-    //     .attr('transform', `translate(${margin.left},${margin.top})`);
-  
-    //   g.append('g')
-    //     .attr('transform', `translate(0,${chartHeight})`)
-    //     .call(d3.axisBottom(x));
-  
-    //   g.append('g')
-    //     .call(d3.axisLeft(y));
-  
-    //   g.append('path')
-    //     .datum(data)
-    //     .attr('fill', 'none')
-    //     .attr('stroke', 'steelblue')
-    //     .attr('stroke-width', 1.5)
-    //     .attr('d', line);
-    // }
-  
-    // onMount(drawChart);
-    // afterUpdate(drawChart);
-  </script>
-  
+    $: yScale = scaleLinear()
+        .domain([
+            min(sliced_data, (d) => d.powerConsumption),
+            max(sliced_data, (d) => d.powerConsumption),
+        ])
+        .range([chartHeight - paddingBottom, paddingTop]); // Inverted range for y-axis
 
-    <svg>
+    // Define the line generator function
+    $: lineGenerator = d3.line()
+        .x(d => xScale(d.time))
+        .y(d => yScale(d.powerConsumption))
+        .curve(d3.curveMonotoneX); // This makes the line smooth
+    let xAxis, yAxis;
 
-      {#each data as data }
-      
-      {/each}
-    
-    </svg>
+    $: if (xAxis && yAxis) {
+        select(xAxis).call(axisBottom(xScale))
+            .call(g => g.select(".domain").remove()); // Remove the x-axis line
+        select(yAxis)
+            .attr("transform", `translate(${paddingLeft}, 0)`)
+            .call(axisRight(yScale))
+            .call(g => g.select(".domain").remove()); // Remove the y-axis line
+    }
+
+
+    $: console.log("YSCALE", yScale(sliced_data[sliced_data.length-1].powerConsumption))
+</script>
+
+<svg class="historgram" width={chartWidth} height={chartHeight}>
+    <g
+        bind:this={xAxis}
+        transform={`translate(0, ${chartHeight - paddingBottom})`}
+        class="x-Axis"
+    ></g>
+    <g bind:this={yAxis} class="y-Axis"></g>
+
+    <!-- Draw the line for the line chart -->
+    <path
+        d={lineGenerator(sliced_data)}
+        fill="none"
+        stroke="orange"
+        stroke-width="1"
+    />
+
+    <!-- Optionally, if you want to keep the circles on the line chart -->
+    <g>
+        {#each sliced_data as val, i}
+            <circle
+                cx={xScale(val.time)}
+                cy={yScale(val.powerConsumption)}
+                r="1"
+                fill="gold"
+            />
+        {/each}
+    </g>
+</svg>

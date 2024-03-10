@@ -7,6 +7,7 @@ export function connectWebSocket() {
 
   ws.onmessage = (event) => {
     const newData = JSON.parse(event.data);
+    newData.time = Date.now()
     gpuData.update(currentData => {
       return [...currentData, newData];
     });

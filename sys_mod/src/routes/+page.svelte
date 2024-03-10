@@ -13,6 +13,7 @@
         gpuUtilization: 0,
         powerConsumption: 0,
         vramUsedPercentage: 0,
+        time: 0
     }
 
     $: data = ($gpuData.length > 0) ? $gpuData : [temp]
