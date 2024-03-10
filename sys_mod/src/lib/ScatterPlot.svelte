@@ -52,6 +52,7 @@
 </script>
 
 <h5>{title}</h5>
+<!-- Add Scatter dots later -->
 <svg class="historgram" width={chartWidth} height={chartHeight}>
     <g
         bind:this={xAxisPower}
