@@ -3,12 +3,37 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gorilla/websocket"
+	_ "github.com/gorilla/websocket"
 )
 
-func main() {
+// GPUData struct to hold all the GPU information
+type GPUData struct {
+	Temperature          float64 `json:"temperature"`
+	PowerConsumption     float64 `json:"powerConsumption"`
+	CurrentGPUClockState string  `json:"currentGPUClockState"`
+	VramUsedPercentage   float64 `json:"vramUsedPercentage"`
+	GPUUtilization       int     `json:"gpuUtilization"`
+}
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true // Allow connections from any origin
+	},
+}
+
+func serveWs(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		fmt.Println("Error upgrading to WebSocket:", err)
+		return
+	}
+	defer conn.Close()
 	for {
 
 		// GPU Temperature
@@ -140,10 +165,27 @@ func main() {
 			vramUsedPercentage,
 			gpuUtilization)
 
-		// Wait for 1 second before updating again
+		// Populate the GPUData struct with your data
+		data := GPUData{
+			Temperature:          float64(tempDegrees) / 1000.0,        // Convert millidegrees to degrees
+			PowerConsumption:     float64(powerMilliWatts) / 1000000.0, // Convert microwatts to watts
+			CurrentGPUClockState: currentGPUClockState,
+			VramUsedPercentage:   vramUsedPercentage,
+			GPUUtilization:       gpuUtilization,
+		}
+
+		// Send the data over the WebSocket connection
+		if err := conn.WriteJSON(data); err != nil {
+			fmt.Println("Error sending data:", err)
+			break
+		}
 		time.Sleep(1 * time.Second)
 	}
 
 }
 
-
+func main() {
+	http.HandleFunc("/ws", serveWs)
+	fmt.Println("Starting Server on port:8069 ")
+	http.ListenAndServe(":8069", nil)
+}
