@@ -1,28 +1,41 @@
 package main
 
+/*
+#cgo LDFLAGS: -lOpenCL
+#define CL_TARGET_OPENCL_VERSION 300
+#include <CL/cl.h>
+*/
+import "C"
+
 import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
+	_ "unsafe"
 
 	"github.com/gorilla/websocket"
-	_ "github.com/gorilla/websocket"
+	// "github.com/gorilla/websocket"
+	// _ "github.com/jgillich/go-opencl/cl"
 )
+
+const kernelSource = `
+__kernel void add(__global const float* a, __global const float* b, __global float* c) {
+    int gid = get_global_id(0);
+    c[gid] = a[gid] + b[gid];
+}
+`
 
 // GPUData struct to hold all the GPU information
 type GPUData struct {
-	Temperature          float64 `json:"temperature"`
-	PowerConsumption     float64 `json:"powerConsumption"`
-	CurrentGPUClockState string  `json:"currentGPUClockState"`
-	VramUsedPercentage   float64 `json:"vramUsedPercentage"`
-	GPUUtilization       int     `json:"gpuUtilization"`
-	CurrentGPUClockSpeed int     `json:"currentGPUClockSpeed"`
-	Sclk                 int     `json:"sclk"`
-	Mclk                 int     `json:"mclk"`
+	Temperature        float64 `json:"temperature"`
+	PowerConsumption   float64 `json:"powerConsumption"`
+	VramUsedPercentage float64 `json:"vramUsedPercentage"`
+	GPUUtilization     int     `json:"gpuUtilization"`
+	Sclk               int     `json:"sclk"`
+	Mclk               int     `json:"mclk"`
 }
 
 var upgrader = websocket.Upgrader{
@@ -73,62 +86,6 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// fmt.Printf("GPU Power Consumption: %.2f mW\n", float64(powerMilliWatts)/1000.0)
-
-		// GPU Sys_Clock
-		clockFilePath := "/sys/class/drm/card0/device/pp_dpm_sclk" // Adjust as needed
-		clockInfoBytes, err := ioutil.ReadFile(clockFilePath)
-		if err != nil {
-			fmt.Println("Error reading clock info:", err)
-			return
-		}
-		clockInfo := strings.TrimSpace(string(clockInfoBytes))
-
-		lines := strings.Split(clockInfo, "\n")
-		currentGPUClockState := ""
-		currentGPUClockSpeed := 0 // New variable to store the clock speed as an integer
-		for _, line := range lines {
-			// fmt.Println("Lines", line)
-			if strings.Contains(line, "*") {
-				currentGPUClockState = line
-				fmt.Println("Line", line)
-
-				// Extract the numeric value using regex
-				re := regexp.MustCompile(`\d+`)
-				speedStr := re.FindString(line)
-				fmt.Println("Regexed", speedStr)
-				if speedStr != "" {
-					// Convert the clean speed string to an integer
-					currentGPUClockSpeed, err = strconv.Atoi(speedStr)
-					fmt.Println("CGCS", currentGPUClockSpeed)
-					if err != nil {
-						fmt.Println("Error converting clock speed to integer:", err)
-						return
-					}
-				}
-				break
-			}
-		}
-
-		// ////////////////////////
-
-		// sclk label
-		fmt.Println("\n")
-		// sclk_fp := "/sys/class/drm/card0/device/hwmon/hwmon3/freq1_label" // Adjust as needed
-		// sclkBytes, err := ioutil.ReadFile(sclk_fp)
-		// if err != nil {
-		// 	fmt.Println("Error reading clock info:", err)
-		// 	return
-		// }
-
-		// mclk label
-		// mclk_fp := "/sys/class/drm/card0/device/hwmon/hwmon3/freq2_label" // Adjust as needed
-		// mclkBytes, err := ioutil.ReadFile(mclk_fp)
-		// if err != nil {
-		// 	fmt.Println("Error reading clock info:", err)
-		// 	return
-		// }
-
 		// //////////////
 		// sclk info
 		sclkinfo_fp := "/sys/class/drm/card0/device/hwmon/hwmon3/freq1_input" // Adjust as needed
@@ -146,13 +103,6 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Print the frequencies
-		// sclk label
-		// sclk_lbl := strings.TrimSpace(string(sclkBytes))
-
-		// mclk label
-		// mclk_lbl := strings.TrimSpace(string(mclkBytes))
-		// sclk freq
 		sclk_info := strings.TrimSpace(string(sclkinfoBytes))
 		sclk := 0
 		sclk, err = strconv.Atoi(sclk_info)
@@ -172,10 +122,6 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 		} else {
 			// fmt.Println("Converted integer:", mclk)
 		}
-		// fmt.Println(mclk_lbl, mclk)
-
-		// mclk freq
-		// fmt.Println(mclk_lbl, mclk_info)
 
 		// /////////////////////////////////////////////////////
 
@@ -229,51 +175,124 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Clear the screen and move the cursor to the top left corner
-		// fmt.Print("\033[H\033[2J")
-
-		// // Print the table headers with proper spacing
-		// fmt.Printf("%-25s %-25s %-25s %-20s %-15s\n",
-		// 	"GPU Temperature (°C)",
-		// 	"GPU Power Consumption (W)",
-		// 	"Current GPU Clock State",
-		// 	"GPU VRAM Usage (%)",
-		// 	"GPU Utilization (%)")
-
-		// Print the values in the same order as the headers
-		// fmt.Printf("%-25.2f %-25.2f %-25s %-20.2f %-15d\n",
-		// 	float64(tempDegrees)/1000.0,        // Convert millidegrees to degrees
-		// 	float64(powerMilliWatts)/1000000.0, // Convert microwatts to milliwatts
-		// 	currentGPUClockState,
-		// 	vramUsedPercentage,
-		// 	gpuUtilization)
-
 		// Populate the GPUData struct with your data
 		data := GPUData{
-			Temperature:          float64(tempDegrees) / 1000.0,        // Convert millidegrees to degrees
-			PowerConsumption:     float64(powerMilliWatts) / 1000000.0, // Convert microwatts to watts
-			CurrentGPUClockState: currentGPUClockState,
-			VramUsedPercentage:   vramUsedPercentage,
-			GPUUtilization:       gpuUtilization,
-			CurrentGPUClockSpeed: currentGPUClockSpeed,
-			Sclk:                 sclk,
-			Mclk:                 mclk,
+			Temperature:        float64(tempDegrees) / 1000.0,        // Convert millidegrees to degrees
+			PowerConsumption:   float64(powerMilliWatts) / 1000000.0, // Convert microwatts to watts
+			VramUsedPercentage: vramUsedPercentage,
+			GPUUtilization:     gpuUtilization,
+			Sclk:               sclk,
+			Mclk:               mclk,
 		}
 
-		fmt.Printf("Temp: %f\nPower: %f\nSCLK: %d\nMCLK: %d\nGPU_Clock: %d", data.Temperature, data.PowerConsumption, data.Sclk, data.Mclk, data.CurrentGPUClockSpeed)
+		fmt.Printf("Temp: %f\nPower: %f\nSCLK: %d\nMCLK: %d\nGPU_prcnt: %d\nVRam: %f", data.Temperature, data.PowerConsumption, data.Sclk, data.Mclk, gpuUtilization, data.VramUsedPercentage)
 
 		// Send the data over the WebSocket connection
 		if err := conn.WriteJSON(data); err != nil {
 			fmt.Println("Error sending data:", err)
 			break
 		}
+		fmt.Println("\n")
 		time.Sleep(1 * time.Second)
 	}
-
 }
+
+// func getDevices() {
+// 	var numPlatforms C.cl_uint
+// 	C.clGetPlatformIDs(0, nil, &numPlatforms)
+
+// 	if numPlatforms == 0 {
+// 		fmt.Println("No OpenCL platforms found.")
+// 		return
+// 	}
+
+// 	platforms := make([]C.cl_platform_id, numPlatforms)
+// 	C.clGetPlatformIDs(numPlatforms, &platforms[0], nil)
+
+// 	// Assuming you want to use the first platform (Clover in your case)
+// 	platform := platforms[0]
+
+// 	var numDevices C.cl_uint
+// 	C.clGetDeviceIDs(platform, C.CL_DEVICE_TYPE_GPU, 0, nil, &numDevices)
+
+// 	if numDevices == 0 {
+// 		fmt.Println("No OpenCL GPU devices found for this platform.")
+// 		return
+// 	}
+
+// 	devices := make([]C.cl_device_id, numDevices)
+// 	C.clGetDeviceIDs(platform, C.CL_DEVICE_TYPE_GPU, numDevices, &devices[0], nil)
+
+// 	// Assuming you want to use the first GPU device
+// 	device := devices[0]
+
+// 	// Create a context
+// 	var context C.cl_context
+// 	context = C.clCreateContext(nil, 1, &device, nil, nil, nil)
+
+// 	// Create a command queue
+// 	var commandQueue C.cl_command_queue
+// 	commandQueue = C.clCreateCommandQueue(context, device, 0, nil)
+
+// 	// Compile the kernel
+// 	kernelSourceStr := C.CString(kernelSource)
+// 	defer C.free(unsafe.Pointer(kernelSourceStr))
+// 	var program C.cl_program
+// 	program = C.clCreateProgramWithSource(context, 1, &kernelSourceStr, nil, nil)
+// 	if errCode := C.clBuildProgram(program, 1, &device, nil, nil, nil); errCode != C.CL_SUCCESS {
+// 		// Handle error: You should retrieve the build log for detailed error messages
+// 		fmt.Println("Failed to build program.")
+// 		return
+// 	}
+
+// 	// Create the kernel
+// 	kernelName := C.CString("add")
+// 	defer C.free(unsafe.Pointer(kernelName))
+// 	var kernel C.cl_kernel
+// 	kernel = C.clCreateKernel(program, kernelName, nil)
+
+// 	// Assume you have input arrays a and b, and an output array c
+// 	// For simplicity, let's say they are all of size 10
+// 	a := make([]float32, 10)
+// 	b := make([]float32, 10)
+// 	c := make([]float32, 10) // This will store the result
+
+// 	// Create buffers for the kernel arguments
+// 	var aMem, bMem, cMem C.cl_mem
+// 	aMem = C.clCreateBuffer(context, C.CL_MEM_READ_ONLY|C.CL_MEM_COPY_HOST_PTR, C.size_t(len(a)*4), unsafe.Pointer(&a[0]), nil)
+// 	bMem = C.clCreateBuffer(context, C.CL_MEM_READ_ONLY|C.CL_MEM_COPY_HOST_PTR, C.size_t(len(b)*4), unsafe.Pointer(&b[0]), nil)
+// 	cMem = C.clCreateBuffer(context, C.CL_MEM_WRITE_ONLY, C.size_t(len(c)*4), nil, nil)
+
+// 	// Set kernel arguments
+// 	C.clSetKernelArg(kernel, 0, C.size_t(unsafe.Sizeof(aMem)), unsafe.Pointer(&aMem))
+// 	C.clSetKernelArg(kernel, 1, C.size_t(unsafe.Sizeof(bMem)), unsafe.Pointer(&bMem))
+// 	C.clSetKernelArg(kernel, 2, C.size_t(unsafe.Sizeof(cMem)), unsafe.Pointer(&cMem))
+
+// 	// Enqueue the kernel for execution
+// 	var globalWorkSize [1]C.size_t = [1]C.size_t{10} // Match the size of your arrays
+// 	C.clEnqueueNDRangeKernel(commandQueue, kernel, 1, nil, &globalWorkSize[0], nil, 0, nil, nil)
+
+// 	// Read the result back into c
+// 	C.clEnqueueReadBuffer(commandQueue, cMem, C.CL_TRUE, 0, C.size_t(len(c)*4), unsafe.Pointer(&c[0]), 0, nil, nil)
+
+// 	// Don't forget to release OpenCL resources when done
+// 	C.clReleaseMemObject(aMem)
+// 	C.clReleaseMemObject(bMem)
+// 	C.clReleaseMemObject(cMem)
+// 	C.clReleaseKernel(kernel)
+// 	C.clReleaseProgram(program)
+// 	C.clReleaseCommandQueue(commandQueue)
+// 	C.clReleaseContext(context)
+// }
+
+// func main() {
+// 	getDevices()
+// }
 
 func main() {
 	http.HandleFunc("/ws", serveWs)
 	fmt.Println("Starting Server on port:8069 ")
 	http.ListenAndServe(":8069", nil)
+
+	// getDevices()
 }

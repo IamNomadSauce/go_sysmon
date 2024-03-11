@@ -30,21 +30,31 @@
 
 <div class="row">
 
-    <div class="col-2">
+    <div class="col">
         <h5>Temperature: {data[data.length-1].temperature}C {1 * (data[data.length-1].temperature) + 32}F</h5>
+    </div>
+    <div class="col">
         <h5>GPU-Utilization: {data[data.length-1].gpuUtilization}%</h5>
+    </div>
+    <div class="col">
         <h5>Avg-Power: {data[data.length-1].powerConsumption}W</h5>
+    </div>
+    <div class="col">
         <h5>VRam%: {data[data.length-1].vramUsedPercentage}</h5>
+    </div>
+    <div class="col">
         <h5>SCLK: {data[data.length-1].sclk}</h5>
+    </div>
+    <div class="col">
         <h5>MCLK: {data[data.length-1].mclk}</h5>
     </div>
 
-    <div class="col-10">
-        <LineChart data={data} width="600" height="300" />
-
-    </div>
 </div>
 
+<div class="col-12">
+    <LineChart data={data} width="600" height="300" />
+
+</div>
     
 
 

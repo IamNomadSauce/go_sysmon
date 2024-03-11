@@ -24,10 +24,7 @@
     $: vram_data = data.map((v) => ({time: v.time, value: v.vramUsedPercentage}))
     $: mclk_data = data.map((v) => ({time: v.time, value: v.mclk}))
     $: sclk_data = data.map((v) => ({time: v.time, value: v.sclk}))
-
-
-
-
+    
 </script>
 
 <div class="d-flex row">

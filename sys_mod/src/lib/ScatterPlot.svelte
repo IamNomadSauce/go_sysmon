@@ -12,7 +12,7 @@
     export let height = 300;
 
     let slice_window = 1440;
-    let chartWidth = 700;
+    let chartWidth = 800;
     let chartHeight = 300;
     let paddingLeft = 50;
     let paddingRight = 25;
