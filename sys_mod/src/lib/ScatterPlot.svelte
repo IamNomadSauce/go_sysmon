@@ -8,11 +8,11 @@
     export let data = [];
     export let title = "Chart"
     export let color = "orange"
-    export let width = 600;
+    export let width = 400;
     export let height = 300;
 
     let slice_window = 1440;
-    let chartWidth = 1200;
+    let chartWidth = 700;
     let chartHeight = 300;
     let paddingLeft = 50;
     let paddingRight = 25;
@@ -51,6 +51,7 @@
 
 </script>
 
+<svelte:window bind />
 <h5>{title}</h5>
 <!-- Add Scatter dots later -->
 <svg class="historgram" width={chartWidth} height={chartHeight}>

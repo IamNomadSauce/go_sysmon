@@ -30,52 +30,30 @@
 
 </script>
 
-<ScatterPlot data={temp_data} title="Temperature" color="orange" />
-<ScatterPlot data={gpuU_data} title="GPU Utilization %" color="blue"/>
-<ScatterPlot data={pwr_data} title="Avg Power (W)" color="yellow" />
-<ScatterPlot data={vram_data} title="VRam Utilization" color="white"/>
-<ScatterPlot data={mclk_data} title="Memory Clock (MHz)" color="purple"/>
-<ScatterPlot data={sclk_data} title="System Clock (MHz)" color="green"/>
+<div class="d-flex row">
+    <div class="col">
+        <ScatterPlot data={temp_data} title="Temperature" color="orange" />
+    </div>
+    <div class="col">
+        <ScatterPlot data={gpuU_data} title="GPU Utilization %" color="blue"/>
+    </div>
+</div>
 
+<div class="row">
+    <div class="col">
+        <ScatterPlot data={pwr_data} title="Avg Power (W)" color="yellow" />
+    </div>
+    <div class="col">
+        <ScatterPlot data={vram_data} title="VRam Utilization" color="white"/>
+    </div>
+</div>
 
+<div class="row">
 
-
-
-<!-- Power Consumption Line Chart -->
-<!-- <h5>Power</h5>
-<svg class="historgram" width={chartWidth} height={chartHeight}>
-    <g
-        bind:this={xAxisPower}
-        transform={`translate(0, ${chartHeight - paddingBottom})`}
-        class="x-Axis"
-    ></g>
-    <g bind:this={yAxisPower} class="y-Axis"></g>
-
-    Draw the line for power consumption
-    <path
-        d={lineGeneratorPower(sliced_data)}
-        fill="none"
-        stroke="orange"
-        stroke-width="1"
-    />
-</svg> -->
-
-
-<!-- Temperature Line Chart
-<h5>Temperature</h5>
-<svg class="historgram" width={chartWidth} height={chartHeight} style="margin-top: 20px;">
-    <g
-        bind:this={xAxisTemp}
-        transform={`translate(0, ${chartHeight - paddingBottom})`}
-        class="x-Axis"
-    ></g>
-    <g bind:this={yAxisTemp} class="y-Axis"></g>
-
-    Draw the line for temperature
-    <path
-        d={lineGeneratorTemp(sliced_data)}
-        fill="none"
-        stroke="cyan"
-        stroke-width="1"
-    />
-</svg> -->
+    <div class="col">
+        <ScatterPlot data={mclk_data} title="Memory Clock (MHz)" color="purple"/>
+    </div>
+    <div class="col">
+        <ScatterPlot data={sclk_data} title="System Clock (MHz)" color="green"/>
+    </div>
+</div>
