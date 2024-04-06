@@ -38,6 +38,8 @@ type GPUData struct {
 	Mclk               int     `json:"mclk"`
 }
 
+// TODO Add Device info/retrieval
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true // Allow connections from any origin
